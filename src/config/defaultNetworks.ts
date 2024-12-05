@@ -1,5 +1,5 @@
 import { Networks } from "@stellar/stellar-sdk";
-import { StellarNetworkConfig } from "./sorobanToolkit";
+import { StellarNetworkConfig } from "./toolkit";
 
 export const testnet: StellarNetworkConfig = {
   network: "testnet",

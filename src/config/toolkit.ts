@@ -1,4 +1,5 @@
 import { Horizon, Keypair, rpc } from "@stellar/stellar-sdk";
+import { AddressBook } from "../utils/addressBook";
 
 export interface StellarNetworkConfig {
   network: string;
@@ -12,6 +13,8 @@ interface ToolkitOptions {
   adminSecret: string;
   network: StellarNetworkConfig;
   contractPaths?: Record<string, string>;
+  addressBookPath?: string;
+  verbose?: "none" | "some" | "full";
 }
 
 export class SorobanToolkit {
@@ -21,9 +24,17 @@ export class SorobanToolkit {
   friendbotUrl?: string;
   admin: Keypair;
   contractPaths: Record<string, string>;
+  addressBook: AddressBook;
+  private verbose: "none" | "some" | "full";
 
   constructor(options: ToolkitOptions) {
-    const { adminSecret, network, contractPaths = {} } = options;
+    const { 
+      adminSecret, 
+      network, 
+      contractPaths = {}, 
+      addressBookPath = "./.soroban",
+      verbose = "none",
+    } = options;
 
     if (!adminSecret) {
       throw new Error("Admin secret key is required.");
@@ -37,6 +48,8 @@ export class SorobanToolkit {
     this.friendbotUrl = network.friendbotUrl;
     this.admin = Keypair.fromSecret(adminSecret);
     this.contractPaths = contractPaths;
+    this.addressBook = AddressBook.loadFromFile(network.network, addressBookPath);
+    this.verbose = verbose;
   }
 
   /**
@@ -59,5 +72,28 @@ export class SorobanToolkit {
    */
   createKeypair(privateKey: string): Keypair {
     return Keypair.fromSecret(privateKey);
+  }
+
+  /**
+   * Log messages based on verbosity level.
+   * @param level - The level of verbosity for this message ("some" or "full").
+   * @param messages - The messages to log.
+   */
+  private log(level: "some" | "full", ...messages: any[]): void {
+    if (this.verbose === "none") return;
+    if (this.verbose === "some" && level === "some") {
+      console.log(...messages);
+    } else if (this.verbose === "full") {
+      console.log(...messages);
+    }
+  }
+
+  /**
+   * Public logging method (to be used by managers/utilities).
+   * @param level - The level of verbosity for this message.
+   * @param messages - The messages to log.
+   */
+  public logVerbose(level: "some" | "full", ...messages: any[]): void {
+    this.log(level, ...messages);
   }
 }

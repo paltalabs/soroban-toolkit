@@ -1,16 +1,26 @@
-import { futurenet, testnet } from "./networks";
-import { StellarNetworkConfig, SorobanToolkit } from "./sorobanToolkit";
+import { futurenet, testnet } from "./defaultNetworks";
+import { StellarNetworkConfig, SorobanToolkit } from "./toolkit";
 
 interface Toolkit {
   getNetworkToolkit: (networkName: string) => SorobanToolkit;
   listAvailableNetworks: () => string[];
 }
 
-export function initializeToolkit(
-  adminSecret: string,
-  contractPaths: Record<string, string> = {},
-  customNetworks?: StellarNetworkConfig[]
-): Toolkit {
+interface CreateToolkitOptions {
+  adminSecret: string;
+  contractPaths?: Record<string, string>;
+  customNetworks?: StellarNetworkConfig[];
+  addressBookPath?: string;
+  verbose?: "none" | "some" | "full";
+}
+
+export function createToolkit({
+  adminSecret, 
+  contractPaths, 
+  customNetworks, 
+  addressBookPath = "./.soroban", 
+  verbose = "none"
+}: CreateToolkitOptions): Toolkit {
   // Default networks
   const defaultNetworks: Record<string, StellarNetworkConfig> = {
     testnet,
@@ -37,7 +47,13 @@ export function initializeToolkit(
       if (!network) {
         throw new Error(`Unknown network: ${networkName}`);
       }
-      return new SorobanToolkit({ adminSecret, network, contractPaths });
+      return new SorobanToolkit({ 
+        adminSecret, 
+        network, 
+        contractPaths,
+        addressBookPath,
+        verbose
+      });
     },
 
     /**
