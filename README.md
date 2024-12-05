@@ -1,103 +1,190 @@
-# TSDX User Guide
+# Soroban Toolkit
 
-Congrats! You just saved yourself hours of work by bootstrapping this project with TSDX. Let’s get you oriented with what’s here and how to use it.
+Soroban Toolkit is a powerful library designed to simplify interactions with Stellar’s Soroban smart contracts. It provides tools for deploying, invoking, and managing smart contracts while handling complex blockchain interactions with ease.
 
-> This TSDX setup is meant for developing libraries (not apps!) that can be published to NPM. If you’re looking to build a Node app, you could use `ts-node-dev`, plain `ts-node`, or simple `tsc`.
+## Features
 
-> If you’re new to TypeScript, checkout [this handy cheatsheet](https://devhints.io/typescript)
+- **Smart Contract Deployment**: Streamline the deployment of Soroban smart contracts.
+- **Transaction Management**: Simplify transaction creation and execution.
+- **Address Book**: Keep track of deployed contracts and WASM hashes.
+- **Verbose Logging**: Customizable verbosity levels (none, some, full) to tailor logs.
+- **Airdrop Utility**: Easy access to funding accounts on test networks.
 
-## Commands
+## Getting Started
 
-TSDX scaffolds your new library inside `/src`.
+### Installation
 
-To run TSDX, use:
+1. Clone the repository:
 
-```bash
-npm start # or yarn start
+```sh
+git clone https://github.com/paltalabs/soroban-toolkit.git
+cd soroban-toolkit
 ```
 
-This builds to `/dist` and runs the project in watch mode so any edits you save inside `src` causes a rebuild to `/dist`.
+2. Install dependencies:
 
-To do a one-off build, use `npm run build` or `yarn build`.
-
-To run tests, use `npm test` or `yarn test`.
-
-## Configuration
-
-Code quality is set up for you with `prettier`, `husky`, and `lint-staged`. Adjust the respective fields in `package.json` accordingly.
-
-### Jest
-
-Jest tests are set up to run with `npm test` or `yarn test`.
-
-### Bundle Analysis
-
-[`size-limit`](https://github.com/ai/size-limit) is set up to calculate the real cost of your library with `npm run size` and visualize the bundle with `npm run analyze`.
-
-#### Setup Files
-
-This is the folder structure we set up for you:
-
-```txt
-/src
-  index.tsx       # EDIT THIS
-/test
-  blah.test.tsx   # EDIT THIS
-.gitignore
-package.json
-README.md         # EDIT THIS
-tsconfig.json
+```sh
+yarn install
 ```
 
-### Rollup
+3. Link the package for local testing:
 
-TSDX uses [Rollup](https://rollupjs.org) as a bundler and generates multiple rollup configs for various module formats and build settings. See [Optimizations](#optimizations) for details.
-
-### TypeScript
-
-`tsconfig.json` is set up to interpret `dom` and `esnext` types, as well as `react` for `jsx`. Adjust according to your needs.
-
-## Continuous Integration
-
-### GitHub Actions
-
-Two actions are added by default:
-
-- `main` which installs deps w/ cache, lints, tests, and builds on all pushes against a Node and OS matrix
-- `size` which comments cost comparison of your library on every pull request using [`size-limit`](https://github.com/ai/size-limit)
-
-## Optimizations
-
-Please see the main `tsdx` [optimizations docs](https://github.com/palmerhq/tsdx#optimizations). In particular, know that you can take advantage of development-only optimizations:
-
-```js
-// ./types/index.d.ts
-declare var __DEV__: boolean;
-
-// inside your code...
-if (__DEV__) {
-  console.log('foo');
-}
+```sh
+yarn link
 ```
 
-You can also choose to install and use [invariant](https://github.com/palmerhq/tsdx#invariant) and [warning](https://github.com/palmerhq/tsdx#warning) functions.
+4. In your testing project:
 
-## Module Formats
+```sh
+yarn link <package_name>
+```
 
-CJS, ESModules, and UMD module formats are supported.
+### Development Workflow
 
-The appropriate paths are configured in `package.json` and `dist/index.js` accordingly. Please report if any issues are found.
+#### Watch Mode
 
-## Named Exports
+Run the library in watch mode to rebuild changes automatically:
 
-Per Palmer Group guidelines, [always use named exports.](https://github.com/palmerhq/typescript#exports) Code split inside your React app instead of your React library.
+```sh
+yarn start
+```
 
-## Including Styles
+#### Build for Production
 
-There are many ways to ship styles, including with CSS-in-JS. TSDX has no opinion on this, configure how you like.
+Compile the library for distribution:
 
-For vanilla CSS, you can include it at the root directory and add it to the `files` section in your `package.json`, so that it can be imported separately by your users and run through their bundler's loader.
+```sh
+yarn build
+```
+
+## Usage
+
+### Example Setup
+
+To use the toolkit, initialize it with your network configuration and contract paths:
+
+```javascript
+import { createToolkit, airdropAccount } from "<package_name>";
+
+const toolkitLoader = createToolkit({
+  adminSecret: process.env.ADMIN_SECRET_KEY!,
+  contractPaths: {
+  some_contract: "./target/wasm32-unknown-unknown/release/some_contract.wasm"
+  },
+  customNetworks: [
+  {
+    network: "standalone",
+    friendbotUrl: "http://localhost:8000/friendbot",
+    horizonRpcUrl: "http://localhost:8000",
+    sorobanRpcUrl: "http://localhost:8000/soroban/rpc",
+    networkPassphrase: "Standalone Network ; February 2017",
+  },
+  ],
+  verbose: "full",
+});
+
+const toolkit = toolkitLoader.getNetworkToolkit("standalone");
+
+await airdropAccount(toolkit, toolkit.admin);
+
+const account = await toolkit.horizonRpc.loadAccount(toolkit.admin.publicKey());
+console.log("Account details:", account);
+```
+
+## Features and Modules
+
+### 1. Toolkit Loader
+
+`createToolkit` initializes the toolkit with your configuration:
+
+```javascript
+const toolkitLoader = createToolkit({
+  adminSecret: 'your_admin_secret',
+  contractPaths: {
+    contract_name: 'path_to_wasm_file',
+  },
+  customNetworks: [
+    {
+      network: 'standalone',
+      friendbotUrl: 'http://localhost:8000/friendbot',
+      horizonRpcUrl: 'http://localhost:8000',
+      sorobanRpcUrl: 'http://localhost:8000/soroban/rpc',
+      networkPassphrase: 'Standalone Network ; February 2017',
+    },
+  ],
+  verbose: 'full',
+});
+```
+
+### 2. Address Book
+
+The toolkit integrates an AddressBook to manage deployed contracts:
+
+```javascript
+toolkit.addressBook.setContractId('contractKey', 'contractId');
+toolkit.addressBook.getContractId('contractKey'); // Returns the contract ID
+toolkit.addressBook.listKeys(); // Lists all keys in the address book
+```
+
+### 3. Contract Deployment
+
+Deploy and manage contracts:
+
+```javascript
+await deploySorobanToken(toolkit, toolkit.admin);
+```
+
+### 4. Verbose Logging
+
+Adjust verbosity during toolkit initialization:
+
+- **none**: No logs
+- **some**: Basic logs
+- **full**: Full details (e.g., XDRs, hashes)
+
+## Testing
+
+Run tests with:
+
+```sh
+yarn test
+```
 
 ## Publishing to NPM
 
-We recommend using [np](https://github.com/sindresorhus/np).
+1. Build the library:
+
+```sh
+yarn build
+```
+
+2. Publish to NPM:
+
+```sh
+yarn publish
+```
+
+## Directory Structure
+
+```
+src
+├── config
+│   ├── defaultNetworks.ts      # Default network configurations
+│   ├── loader.ts               # Toolkit loader
+│   └── toolkit.ts              # Toolkit core
+├── index.ts                    # Entry point
+├── managers
+│   ├── contract.ts             # Contract deployment and management
+│   ├── token.ts                # Token contract utilities
+│   └── transaction.ts          # Transaction utilities
+├── soroban_token.wasm          # Token contract WASM file
+├── utils
+│   ├── accountUtils.ts         # Account utilities (e.g., airdrop)
+│   ├── addressBook.ts          # Address book for tracking deployed contracts
+│   └── utils.ts                # General utilities
+```
+
+## Additional Notes
+
+- Ensure `soroban_token.wasm` is included in your build. Use the `rollup-plugin-copy` configuration to copy it to `dist`.
+- Use `yarn link` for testing local changes and `yarn unlink` to remove links.
