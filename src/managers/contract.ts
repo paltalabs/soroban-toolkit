@@ -1,27 +1,31 @@
 import {
   Address,
-    Contract,
-    Keypair,
-    Operation,
-    StrKey,
-    hash,
-    xdr,
-  } from "@stellar/stellar-sdk";
-import { SorobanToolkit } from "../config/toolkit";
-import { resolvePath } from "../utils/utils";
-import { createTransaction, createTransactionBuilder, sendTransaction } from "./transaction";
-import { randomBytes } from "crypto";
-  
+  Contract,
+  Keypair,
+  Operation,
+  StrKey,
+  hash,
+  xdr,
+} from '@stellar/stellar-sdk';
+import { SorobanToolkit } from '../config/toolkit';
+import { resolvePath } from '../utils/utils';
+import {
+  createTransaction,
+  createTransactionBuilder,
+  sendTransaction,
+} from './transaction';
+import { randomBytes } from 'crypto';
+
 export async function installContract(
   toolkit: SorobanToolkit,
-  contractKey: string,
+  wasmKey: string,
   customBuffer?: Buffer,
   source?: Keypair
 ) {
   let contractWasm, wasmHash;
-  
-  if(!customBuffer) {
-    const wasmPath = toolkit.getContractPath(contractKey);
+
+  if (!customBuffer) {
+    const wasmPath = toolkit.getContractPath(wasmKey);
     contractWasm = resolvePath(wasmPath);
     wasmHash = hash(contractWasm);
   } else {
@@ -29,32 +33,35 @@ export async function installContract(
     contractWasm = customBuffer;
   }
 
-  toolkit.logVerbose("full", `Installing contract: ${contractKey}`);
-  toolkit.logVerbose("full", `WASM hash: ${wasmHash.toString("hex")}`);
+  toolkit.logVerbose('full', `Installing contract: ${wasmKey}`);
+  toolkit.logVerbose('full', `WASM hash: ${wasmHash.toString('hex')}`);
 
-  toolkit.addressBook.setWasmHash(contractKey, wasmHash.toString("hex"));
+  toolkit.addressBook.setWasmHash(wasmKey, wasmHash.toString('hex'));
   toolkit.addressBook.writeToFile();
 
   const op = Operation.invokeHostFunction({
-      func: xdr.HostFunction.hostFunctionTypeUploadContractWasm(contractWasm),
-      auth: [],
+    func: xdr.HostFunction.hostFunctionTypeUploadContractWasm(contractWasm),
+    auth: [],
   });
 
   await createTransaction(toolkit, op, false, source);
 }
-  
+
 export async function deployContract(
   toolkit: SorobanToolkit,
+  wasmKey: string,
   contractKey: string,
   args: xdr.ScVal[],
-  source?: Keypair,
+  source?: Keypair
 ) {
   const contractIdSalt = randomBytes(32);
   const networkId = hash(Buffer.from(toolkit.passphrase));
 
   const contractIdPreimage = xdr.ContractIdPreimage.contractIdPreimageFromAddress(
     new xdr.ContractIdPreimageFromAddress({
-      address: Address.fromString(source?.publicKey() ?? toolkit.admin.publicKey()).toScAddress(),
+      address: Address.fromString(
+        source?.publicKey() ?? toolkit.admin.publicKey()
+      ).toScAddress(),
       salt: contractIdSalt,
     })
   );
@@ -69,10 +76,10 @@ export async function deployContract(
   const contractId = StrKey.encodeContract(hash(hashIdPreimage.toXDR()));
   toolkit.addressBook.setContractId(contractKey, contractId);
   toolkit.addressBook.writeToFile();
-  
-  const wasmHash = Buffer.from(toolkit.addressBook.getWasmHash(contractKey), "hex");
-  
-  toolkit.logVerbose("some", `Deploying contract: ${contractKey}`);
+
+  const wasmHash = Buffer.from(toolkit.addressBook.getWasmHash(wasmKey), 'hex');
+
+  toolkit.logVerbose('some', `Deploying contract: ${contractKey}`);
   const deployOp = Operation.invokeHostFunction({
     func: xdr.HostFunction.hostFunctionTypeCreateContractV2(
       new xdr.CreateContractArgsV2({
@@ -88,21 +95,21 @@ export async function deployContract(
 
   return contractId;
 }
-  
+
 export async function invokeContract(
   toolkit: SorobanToolkit,
   contractKey: string,
   method: string,
   params: xdr.ScVal[],
   simulate: boolean = false,
-  source?: Keypair,
+  source?: Keypair
 ) {
   const contractId = toolkit.addressBook.getContractId(contractKey);
   const contract = new Contract(contractId);
 
   const operation = contract.call(method, ...params);
 
-  toolkit.logVerbose("some", `Invoking contract ${contractKey}: ${method}`);
+  toolkit.logVerbose('some', `Invoking contract ${contractKey}: ${method}`);
   return await createTransaction(toolkit, operation, simulate, source);
 }
 
@@ -112,13 +119,13 @@ export async function invokeCustomContract(
   method: string,
   params: xdr.ScVal[],
   simulate: boolean = false,
-  source?: Keypair,
+  source?: Keypair
 ) {
   const contract = new Contract(contractId);
 
   const operation = contract.call(method, ...params);
 
-  toolkit.logVerbose("some", `Invoking contract ${contractId}: ${method}`);
+  toolkit.logVerbose('some', `Invoking contract ${contractId}: ${method}`);
   return await createTransaction(toolkit, operation, simulate, source);
 }
 
@@ -128,7 +135,7 @@ export async function bumpContractInstance(
   source?: Keypair
 ) {
   const address = Address.fromString(contractId);
-  toolkit.logVerbose("some", `Bumping contract instance: ${contractId}`);
+  toolkit.logVerbose('some', `Bumping contract instance: ${contractId}`);
   const contractInstanceXDR = xdr.LedgerKey.contractData(
     new xdr.LedgerKeyContractData({
       contract: address.toScAddress(),
@@ -146,7 +153,7 @@ export async function bumpContractInstance(
       readBytes: 0,
       writeBytes: 0,
     }),
-    resourceFee: xdr.Int64.fromString("0"),
+    resourceFee: xdr.Int64.fromString('0'),
     // @ts-ignore
     ext: new xdr.ExtensionPoint(0),
   });
@@ -154,7 +161,12 @@ export async function bumpContractInstance(
   const txBuilder = await createTransactionBuilder(toolkit, source);
   txBuilder.addOperation(Operation.extendFootprintTtl({ extendTo: 535670 })); // 1 year
   txBuilder.setSorobanData(bumpTransactionData);
-  const result = await sendTransaction(toolkit, txBuilder.build(), false, source);
+  const result = await sendTransaction(
+    toolkit,
+    txBuilder.build(),
+    false,
+    source
+  );
   return result;
 }
 
@@ -163,7 +175,7 @@ export async function bumpContractCode(
   wasmHash: string,
   source?: Keypair
 ) {
-  const wasmHashBuffer = Buffer.from(wasmHash, "hex");
+  const wasmHashBuffer = Buffer.from(wasmHash, 'hex');
   const contractCodeXDR = xdr.LedgerKey.contractCode(
     new xdr.LedgerKeyContractCode({
       hash: wasmHashBuffer,
@@ -179,7 +191,7 @@ export async function bumpContractCode(
       readBytes: 0,
       writeBytes: 0,
     }),
-    resourceFee: xdr.Int64.fromString("0"),
+    resourceFee: xdr.Int64.fromString('0'),
     // @ts-ignore
     ext: new xdr.ExtensionPoint(0),
   });
@@ -187,6 +199,11 @@ export async function bumpContractCode(
   const txBuilder = await createTransactionBuilder(toolkit, source);
   txBuilder.addOperation(Operation.extendFootprintTtl({ extendTo: 535670 })); // 1 year
   txBuilder.setSorobanData(bumpTransactionData);
-  const result = await sendTransaction(toolkit, txBuilder.build(), false, source);
+  const result = await sendTransaction(
+    toolkit,
+    txBuilder.build(),
+    false,
+    source
+  );
   return result;
 }
