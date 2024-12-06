@@ -32,7 +32,7 @@
     "trailingComma": "es5"
   },
   "name": "soroban-toolkit",
-  "author": "coderipper",
+  "author": "coderipper <coderipper@paltalabs.io>",
   "module": "dist/soroban-toolkit.esm.js",
   "size-limit": [
     {
