@@ -10,6 +10,3 @@ export * from './utils/accountUtils';
 export * from './managers/contract';
 export * from './managers/transaction';
 export * from './managers/token';
-
-// Export * from stellar-sdk
-export * from '@stellar/stellar-sdk';
