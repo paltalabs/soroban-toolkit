@@ -14,6 +14,18 @@ Soroban Toolkit is a powerful library designed to simplify interactions with Ste
 
 ### Installation
 
+```
+# Install Node.js 22 LTS
+nvm install 22
+
+# Use Node.js 22 as default
+nvm use 22
+nvm alias default 22
+
+# Verify the version
+node --version
+```
+
 1. Clone the repository:
 
 ```sh
